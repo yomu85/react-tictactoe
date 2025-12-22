@@ -1,119 +1,121 @@
 import { useState } from "react";
 
-export default function Game() {
-  const [history, setHistory] = useState([Array(9).fill(null)]);
-  const [currentMove, setCurrentMove] = useState(0);
-  const xIsNext = currentMove % 2 === 0;
-  const currentSquares = history[currentMove];
-
-  function handlePlay(nextSquares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
-    setHistory(nextHistory);
-    setCurrentMove(nextHistory.length - 1);
-  }
-
-  function jumpTo(nextMove) {
-    setCurrentMove(nextMove)
-  }
-
-  const moves = history.map((squares, move) => {
-    let description;
-    if (move > 0) {
-      description = 'Go to move #' + move;
-    } else {
-      description = 'Go to game start'
-    }
-    return (
-      <li key={`move2-`+ move}>
-        <button onClick={() => jumpTo(move)}>{description}</button>
-      </li>
-    )
-  })
-
+function ProductCategoryRow({ category }) {
   return (
-    <>
-      <div className="game">
-        <div className="game-board">
-          <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
-        </div>
-        <div className="game-info">
-          <ol>{moves}</ol>
-        </div>
-      </div>
-    </>
-  )
-}
-
-function Board({squares, xIsNext, onPlay}) {
-  const winner = calculateWinner(squares);
-  let status;
-
-  if(winner) {
-    status = "Winner: " + winner;
-  } else {
-    status = "Next player:" + (xIsNext ? "X" : "O");
-  }
-
-  function handleclick(i) {
-    if(squares[i] || winner) return;
-
-    const nextSquares = [...squares];
-    if(xIsNext) {
-      nextSquares[i] = 'X';
-    } else {
-      nextSquares[i] = 'O';
-    }
-    onPlay(nextSquares)
-  }
-
-  return (
-    <>
-      <div className="status">{status}</div>
-      <div className="board-row">
-        <Square value={squares[0]} onSquareClick={() => handleclick(0)} />
-        <Square value={squares[1]} onSquareClick={() => handleclick(1)} />
-        <Square value={squares[2]} onSquareClick={() => handleclick(2)} />
-      </div>
-      <div className="board-row">
-        <Square value={squares[3]} onSquareClick={() => handleclick(3)} />
-        <Square value={squares[4]} onSquareClick={() => handleclick(4)} />
-        <Square value={squares[5]} onSquareClick={() => handleclick(5)} />
-      </div>
-      <div className="board-row">
-        <Square value={squares[6]} onSquareClick={() => handleclick(6)} />
-        <Square value={squares[7]} onSquareClick={() => handleclick(7)} />
-        <Square value={squares[8]} onSquareClick={() => handleclick(8)} />
-      </div>
-    </>
+    <tr>
+      <th colSpan="2">{category}</th>
+    </tr>
   );
 }
 
-function Square({value, onSquareClick}) {
+function ProductRow({ product }) {
+  const name = product.stocked ? (
+    product.name
+  ) : (
+    <span style={{ color: "red" }}>{product.name}</span>
+  );
   return (
-    <button className="square" onClick={onSquareClick}>
-      {value}
-    </button>
+    <tr>
+      <td>{name}</td>
+      <td>{product.price}</td>
+    </tr>
   );
 }
 
-function calculateWinner(squares) {
-  const lines = [
-    [0, 1, 2], // 첫 번째 가로줄
-    [3, 4, 5], // 두 번째 가로줄
-    [6, 7, 8], // 세 번째 가로줄
-    [0, 3, 6], // 첫 번째 세로줄
-    [1, 4, 7], // 두 번째 세로줄
-    [2, 5, 8], // 세 번째 세로줄
-    [0, 4, 8], // 대각선 \
-    [2, 4, 6], // 대각선 /
-  ]
+function ProductTable({ products, filterText, inStockOnly }) {
+  const rows = [];
+  let lastCategory = null;
 
-  for(let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i]
-    if(squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a]
+  products.forEach((product) => {
+    if (product.name.toLowerCase().indexOf(filterText.toLowerCase()) === -1) {
+      return;
     }
-  }
 
-  return null;
+    if (inStockOnly && !product.stocked) {
+      return;
+    }
+    if (product.category !== lastCategory) {
+      rows.push(
+        <ProductCategoryRow
+          category={product.category}
+          key={product.category}
+        />
+      );
+    }
+    rows.push(<ProductRow product={product} key={product.name} />);
+    lastCategory = product.category;
+  });
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>{rows}</tbody>
+    </table>
+  );
+}
+
+function SearchBar({
+  filterText,
+  inStockOnly,
+  onFilterTextChange,
+  onInStockOnlyChange,
+}) {
+  return (
+    <form style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <input
+        type="text"
+        value={filterText}
+        placeholder="Search..."
+        style={{ width: "200px" }}
+        onChange={(e) => onFilterTextChange(e.target.value)}
+      />
+      <label htmlFor="searchBarCheckbox">
+        <input
+          type="checkbox"
+          value={inStockOnly}
+          id="searchBarCheckbox"
+          onChange={(e) => onInStockOnlyChange(e.target.checked)}
+        />{" "}
+        Only show products in stock
+      </label>
+    </form>
+  );
+}
+
+function FilterableProductTable({ products }) {
+  const [filterText, setFilterText] = useState("");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  return (
+    <div>
+      <SearchBar
+        filterText={filterText}
+        inStockOnly={inStockOnly}
+        onFilterTextChange={setFilterText}
+        onInStockOnlyChange={setInStockOnly}
+      />
+      <ProductTable
+        products={products}
+        filterText={filterText}
+        inStockOnly={inStockOnly}
+      />
+    </div>
+  );
+}
+
+const PRODUCTS = [
+  { category: "Fruits", price: "$1", stocked: true, name: "Apple" },
+  { category: "Fruits", price: "$1", stocked: true, name: "Dragonfruit" },
+  { category: "Fruits", price: "$2", stocked: false, name: "Passionfruit" },
+  { category: "Vegetables", price: "$2", stocked: true, name: "Spinach" },
+  { category: "Vegetables", price: "$4", stocked: false, name: "Pumpkin" },
+  { category: "Vegetables", price: "$1", stocked: true, name: "Peas" },
+];
+
+export default function App() {
+  return <FilterableProductTable products={PRODUCTS} />;
 }
