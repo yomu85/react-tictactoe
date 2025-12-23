@@ -1,4 +1,4 @@
-import Today from './day05/index3.jsx';
+import Today from './day06/index.jsx';
 
 export default function App() {
   return <Today />
